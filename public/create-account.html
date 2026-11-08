@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Create Account - Arogya Patra</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #f3f8f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        h1 {
+            text-align: center;
+            color: #176b5b;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #176b5b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 17px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .back {
+            text-align: center;
+            margin-top: 20px;
+            color: #176b5b;
+            cursor: pointer;
+        }
+
+        .otp-section {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 15px;
+            color: #176b5b;
+            font-weight: bold;
+        }
+
+        .id-box {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            background: #f3f8f6;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .id-box h2 {
+            color: #176b5b;
+            margin-bottom: 10px;
+        }
+
+        .user-id {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Create Account</h1>
+
+        <p class="subtitle">
+            Create your Arogya Patra account
+        </p>
+
+        <label for="name">Full Name</label>
+
+        <input
+            type="text"
+            id="name"
+            placeholder="Enter your full name"
+        >
+
+        <label for="mobile">Mobile Number</label>
+
+        <input
+            type="tel"
+            id="mobile"
+            placeholder="Enter your 10-digit mobile number"
+        >
+
+        <button onclick="sendOTP()">
+            Send OTP
+        </button>
+
+        <div class="otp-section" id="otpSection">
+
+            <label for="otp">Enter OTP</label>
+
+            <input
+                type="text"
+                id="otp"
+                placeholder="Enter 6-digit OTP"
+            >
+
+            <button onclick="verifyOTP()">
+                Verify OTP
+            </button>
+
+        </div>
+
+        <p class="message" id="message"></p>
+
+        <div class="id-box" id="idBox">
+
+            <h2>Account Created!</h2>
+
+            <p>Your Arogya Patra ID is:</p>
+
+            <p class="user-id" id="userId"></p>
+
+        </div>
+
+        <p class="back" onclick="window.location.href='index.html'">
+            ← Back to Home
+        </p>
+
+    </div>
+
+
+    <script>
+
+        function sendOTP() {
+
+            const name = document.getElementById("name").value.trim();
+            const mobile = document.getElementById("mobile").value.trim();
+
+            if (name === "") {
+                alert("Please enter your full name.");
+                return;
+            }
+
+            if (!/^\d{10}$/.test(mobile)) {
+                alert("Please enter a valid 10-digit mobile number.");
+                return;
+            }
+
+            document.getElementById("otpSection").style.display = "block";
+
+            document.getElementById("message").innerText =
+                "Demo OTP sent successfully. Use OTP: 123456";
+        }
+
+
+        async function verifyOTP() {
+
+            const name = document.getElementById("name").value.trim();
+            const mobile = document.getElementById("mobile").value.trim();
+            const otp = document.getElementById("otp").value.trim();
+
+            if (otp !== "123456") {
+
+                alert("Invalid OTP. Please enter 123456.");
+
+                return;
+            }
+
+            const randomNumber =
+                Math.floor(100000 + Math.random() * 900000);
+
+            const generatedID = "AP" + randomNumber;
+
+
+            try {
+
+                const response = await fetch("/create-account", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        name: name,
+                        mobile: mobile,
+                        userId: generatedID
+                    })
+
+                });
+
+
+                const data = await response.json();
+
+
+                if (!response.ok) {
+
+                    alert(data.message);
+
+                    return;
+                }
+
+
+                document.getElementById("userId").innerText =
+                    data.userId;
+
+                document.getElementById("idBox").style.display =
+                    "block";
+
+                document.getElementById("message").innerText =
+                    "Mobile number verified and account saved successfully!";
+
+
+            } catch (error) {
+
+                alert("Could not connect to the server.");
+
+            }
+
+        }
+
+    </script>
+
+</body>
+
+</html>

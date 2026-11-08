@@ -1,0 +1,862 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arogya Patra - AI Health Report Assistant</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #243047;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    h2 { color: #176b59; }
+
+    .report, .assistant {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px #00000010;
+    }
+
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      border: 1px solid #ccd4df;
+      border-radius: 8px;
+      font-size: 15px;
+      resize: vertical;
+    }
+
+    button {
+      padding: 12px 18px;
+      margin: 8px 8px 8px 0;
+      border: none;
+      border-radius: 8px;
+      background: #176b59;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #9aa9a4;
+      cursor: not-allowed;
+    }
+
+    #micButton.recording { background: #c62828; }
+    #listenButton { background: #245caa; }
+
+    #answer {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f0f8f5;
+      border-radius: 8px;
+      min-height: 55px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    #status {
+      color: #176b59;
+      font-size: 14px;
+      min-height: 20px;
+      white-space: pre-wrap;
+    }
+
+    #audioPlayer {
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .report, .assistant { padding: 14px; }
+      iframe { height: 400px; }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="report">
+    <h2 id="reportTitle">Medical Report</h2>
+    <iframe id="reportFrame" title="Medical report"></iframe>
+  </div>
+
+  <div class="assistant">
+
+    <h2>AI Health Report Assistant</h2>
+
+    <p>
+      Ask questions about your uploaded medical report.
+      You can type or speak your question.
+    </p>
+
+    <textarea
+      id="question"
+      placeholder="Type your question here..."
+    ></textarea>
+
+    <div>
+      <button id="micButton">🎤 Speak</button>
+      <button id="askButton">Ask AI</button>
+    </div>
+
+    <p id="status"></p>
+
+    <h3>AI Answer</h3>
+
+    <div id="answer">
+      Your answer will appear here.
+    </div>
+
+    <button id="listenButton" disabled>
+      🔊 Listen
+    </button>
+
+    <audio id="audioPlayer" controls hidden></audio>
+
+  </div>
+
+</div>
+
+<script>
+
+// ==========================================
+// PAGE ELEMENTS
+// ==========================================
+
+const params = new URLSearchParams(window.location.search);
+
+const file = params.get("file");
+const name = params.get("name") || "Medical Report";
+const reportId = params.get("reportId");
+const userId = params.get("userId");
+
+const reportTitle = document.getElementById("reportTitle");
+const reportFrame = document.getElementById("reportFrame");
+const questionInput = document.getElementById("question");
+const micButton = document.getElementById("micButton");
+const askButton = document.getElementById("askButton");
+const answerBox = document.getElementById("answer");
+const statusBox = document.getElementById("status");
+const listenButton = document.getElementById("listenButton");
+const audioPlayer = document.getElementById("audioPlayer");
+
+reportTitle.textContent = name;
+
+if (file) {
+  reportFrame.src = "/uploads/" + encodeURIComponent(file);
+} else {
+  reportFrame.src = "about:blank";
+}
+
+function showStatus(message) {
+  statusBox.textContent = message;
+}
+
+
+// ==========================================
+// SERVER RESPONSE HANDLER
+// ==========================================
+
+async function readServerResponse(response) {
+
+  const responseText = await response.text();
+
+  let data;
+
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    data = {
+      message: responseText || "Empty server response."
+    };
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.message ||
+      data.error ||
+      `Server error: ${response.status}`
+    );
+  }
+
+  return data;
+}
+
+
+// ==========================================
+// ANSWER AND AUDIO VARIABLES
+// ==========================================
+
+let currentAnswer = "";
+let currentAudioUrl = null;
+let isGeneratingAudio = false;
+
+
+// ==========================================
+// CLEAR OLD AUDIO
+// ==========================================
+
+function clearPreviousAudio() {
+
+  audioPlayer.pause();
+  audioPlayer.removeAttribute("src");
+  audioPlayer.load();
+  audioPlayer.hidden = true;
+
+  if (currentAudioUrl) {
+    URL.revokeObjectURL(currentAudioUrl);
+    currentAudioUrl = null;
+  }
+}
+
+
+// ==========================================
+// GNANI TEXT TO SPEECH
+// ==========================================
+
+async function speakAnswer() {
+
+  if (!currentAnswer.trim()) {
+    showStatus("No AI answer is available to play.");
+    return;
+  }
+
+  if (isGeneratingAudio) return;
+
+  isGeneratingAudio = true;
+
+  listenButton.disabled = true;
+  listenButton.textContent = "Generating voice...";
+
+  clearPreviousAudio();
+
+  showStatus("Generating voice using Gnani...");
+
+  try {
+
+    const response = await fetch("/gnani-tts", {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        text: currentAnswer,
+        language: "auto"
+      })
+
+    });
+
+    if (!response.ok) {
+      const errorData = await readServerResponse(response);
+
+      throw new Error(
+        `TTS Error (${response.status}): ` +
+        (errorData.message || "Voice generation failed.")
+      );
+    }
+
+    const contentType =
+      response.headers.get("content-type") || "";
+
+    if (!contentType.toLowerCase().includes("audio/")) {
+      const text = await response.text();
+
+      throw new Error(
+        "Gnani did not return audio: " + text.slice(0, 300)
+      );
+    }
+
+    const audioBlob = await response.blob();
+
+    if (!audioBlob.size) {
+      throw new Error("Gnani returned an empty audio file.");
+    }
+
+    currentAudioUrl = URL.createObjectURL(audioBlob);
+
+    audioPlayer.src = currentAudioUrl;
+    audioPlayer.hidden = false;
+    audioPlayer.load();
+
+    showStatus(
+      "Voice generated successfully. Click Listen to play."
+    );
+
+  } catch (error) {
+
+    console.error("TTS ERROR:", error);
+    showStatus(error.message);
+
+  } finally {
+
+    isGeneratingAudio = false;
+    listenButton.disabled = false;
+    listenButton.textContent = "🔊 Listen";
+
+  }
+}
+
+
+// ==========================================
+// LISTEN BUTTON
+// ==========================================
+
+listenButton.addEventListener("click", async () => {
+
+  if (!currentAudioUrl) {
+    await speakAnswer();
+    return;
+  }
+
+  try {
+
+    audioPlayer.currentTime = 0;
+    await audioPlayer.play();
+
+    showStatus("Playing AI answer...");
+
+  } catch (error) {
+
+    console.error("PLAYBACK ERROR:", error);
+
+    showStatus(
+      "Audio is generated, but the browser could not play it."
+    );
+
+  }
+
+});
+
+audioPlayer.addEventListener("ended", () => {
+  showStatus("Voice playback completed.");
+});
+
+audioPlayer.addEventListener("error", () => {
+  showStatus("Audio playback failed. Check the received audio format.");
+});
+
+
+// ==========================================
+// MICROPHONE RECORDING VARIABLES
+// ==========================================
+
+let audioContext = null;
+let recordingStream = null;
+let microphoneSource = null;
+let scriptProcessor = null;
+let silentGain = null;
+
+let recordedChunks = [];
+let isRecording = false;
+let isProcessingRecording = false;
+
+
+// ==========================================
+// STOP MICROPHONE HARDWARE
+// ==========================================
+
+async function stopMicrophone() {
+
+  if (scriptProcessor) {
+    scriptProcessor.disconnect();
+    scriptProcessor.onaudioprocess = null;
+    scriptProcessor = null;
+  }
+
+  if (microphoneSource) {
+    microphoneSource.disconnect();
+    microphoneSource = null;
+  }
+
+  if (silentGain) {
+    silentGain.disconnect();
+    silentGain = null;
+  }
+
+  if (recordingStream) {
+
+    recordingStream.getTracks().forEach(track => {
+      track.stop();
+    });
+
+    recordingStream = null;
+  }
+
+  if (audioContext) {
+
+    const contextToClose = audioContext;
+    audioContext = null;
+
+    if (contextToClose.state !== "closed") {
+      await contextToClose.close();
+    }
+  }
+
+}
+
+
+// ==========================================
+// RESET MICROPHONE BUTTON
+// ==========================================
+
+function resetMicButton() {
+
+  micButton.disabled = false;
+  micButton.textContent = "🎤 Speak";
+  micButton.classList.remove("recording");
+
+}
+
+
+// ==========================================
+// CREATE WAV FILE
+// ==========================================
+
+function createWavBlob(chunks, originalSampleRate) {
+
+  if (!chunks.length) {
+    throw new Error("No audio was captured. Please try again.");
+  }
+
+  const totalLength = chunks.reduce(
+    (total, chunk) => total + chunk.length,
+    0
+  );
+
+  const combined = new Float32Array(totalLength);
+
+  let position = 0;
+
+  for (const chunk of chunks) {
+    combined.set(chunk, position);
+    position += chunk.length;
+  }
+
+  const targetSampleRate = 16000;
+
+  const ratio = originalSampleRate / targetSampleRate;
+
+  const outputLength = Math.ceil(combined.length / ratio);
+
+  const samples = new Float32Array(outputLength);
+
+  for (let i = 0; i < outputLength; i++) {
+
+    const start = Math.floor(i * ratio);
+    const end = Math.min(
+      Math.floor((i + 1) * ratio),
+      combined.length
+    );
+
+    let sum = 0;
+    let count = 0;
+
+    for (let j = start; j < end; j++) {
+      sum += combined[j];
+      count++;
+    }
+
+    samples[i] = count > 0 ? sum / count : 0;
+  }
+
+  const wavBuffer = new ArrayBuffer(
+    44 + samples.length * 2
+  );
+
+  const view = new DataView(wavBuffer);
+
+  function writeString(offset, value) {
+
+    for (let i = 0; i < value.length; i++) {
+      view.setUint8(offset + i, value.charCodeAt(i));
+    }
+
+  }
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, targetSampleRate, true);
+  view.setUint32(28, targetSampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+
+  writeString(36, "data");
+  view.setUint32(40, samples.length * 2, true);
+
+  let offset = 44;
+
+  for (let i = 0; i < samples.length; i++) {
+
+    const sample = Math.max(-1, Math.min(1, samples[i]));
+
+    view.setInt16(
+      offset,
+      sample < 0 ? sample * 32768 : sample * 32767,
+      true
+    );
+
+    offset += 2;
+  }
+
+  return new Blob(
+    [wavBuffer],
+    { type: "audio/wav" }
+  );
+
+}
+
+
+// ==========================================
+// GNANI SPEECH TO TEXT
+// ==========================================
+
+async function processRecording(wavBlob) {
+
+  if (!wavBlob || !wavBlob.size) {
+    throw new Error("No audio was recorded.");
+  }
+
+  const formData = new FormData();
+
+  formData.append(
+    "audio",
+    wavBlob,
+    "recording.wav"
+  );
+
+  showStatus("Sending WAV recording to Gnani...");
+
+  const response = await fetch("/gnani-stt", {
+
+    method: "POST",
+
+    body: formData
+
+  });
+
+  const data = await readServerResponse(response);
+
+  const transcript = (
+    data.transcript ||
+    data.text ||
+    ""
+  ).trim();
+
+  if (!transcript) {
+    throw new Error(
+      "Gnani returned an empty transcript."
+    );
+  }
+
+  questionInput.value = transcript;
+
+  showStatus(
+    "Speech converted successfully. Check your question and click Ask AI."
+  );
+
+}
+
+
+// ==========================================
+// START MICROPHONE RECORDING
+// ==========================================
+
+async function startRecording() {
+
+  if (isProcessingRecording || isRecording) return;
+
+  try {
+
+    if (!navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia) {
+
+      throw new Error(
+        "Microphone is unavailable. Open the app using http://localhost:3000 in Chrome."
+      );
+    }
+
+    const AudioContextClass =
+      window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) {
+      throw new Error("Audio recording is not supported by this browser.");
+    }
+
+    showStatus("Requesting microphone permission...");
+
+    recordingStream =
+      await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+    audioContext = new AudioContextClass();
+
+    await audioContext.resume();
+
+    recordedChunks = [];
+
+    microphoneSource =
+      audioContext.createMediaStreamSource(recordingStream);
+
+    scriptProcessor =
+      audioContext.createScriptProcessor(4096, 1, 1);
+
+    silentGain = audioContext.createGain();
+    silentGain.gain.value = 0;
+
+    scriptProcessor.onaudioprocess = event => {
+
+      if (!isRecording) return;
+
+      const inputData =
+        event.inputBuffer.getChannelData(0);
+
+      recordedChunks.push(
+        new Float32Array(inputData)
+      );
+
+    };
+
+    microphoneSource.connect(scriptProcessor);
+    scriptProcessor.connect(silentGain);
+    silentGain.connect(audioContext.destination);
+
+    isRecording = true;
+
+    micButton.textContent = "⏹ Stop Recording";
+    micButton.classList.add("recording");
+
+    showStatus(
+      "Listening... Speak your question and press Stop Recording."
+    );
+
+  } catch (error) {
+
+    console.error("MICROPHONE ERROR:", error);
+
+    isRecording = false;
+
+    await stopMicrophone();
+
+    resetMicButton();
+
+    showStatus(error.message || "Microphone could not start.");
+
+  }
+
+}
+
+
+// ==========================================
+// STOP AND PROCESS RECORDING
+// ==========================================
+
+async function finishRecording() {
+
+  if (!isRecording || isProcessingRecording) return;
+
+  isRecording = false;
+  isProcessingRecording = true;
+
+  micButton.disabled = true;
+  micButton.textContent = "Processing...";
+
+  showStatus("Preparing your voice recording...");
+
+  const chunks = recordedChunks.slice();
+
+  const sampleRate = audioContext
+    ? audioContext.sampleRate
+    : 48000;
+
+  try {
+
+    await stopMicrophone();
+
+    const wavBlob = createWavBlob(chunks, sampleRate);
+
+    await processRecording(wavBlob);
+
+  } catch (error) {
+
+    console.error("STT ERROR:", error);
+
+    showStatus(
+      error.message || "Speech recognition failed."
+    );
+
+  } finally {
+
+    recordedChunks = [];
+
+    isRecording = false;
+    isProcessingRecording = false;
+
+    resetMicButton();
+
+  }
+
+}
+
+
+// ==========================================
+// MICROPHONE BUTTON
+// ==========================================
+
+micButton.addEventListener("click", async () => {
+
+  if (isRecording) {
+    await finishRecording();
+    return;
+  }
+
+  await startRecording();
+
+});
+
+
+// ==========================================
+// ASK AI
+// ==========================================
+
+askButton.addEventListener("click", async () => {
+
+  const question = questionInput.value.trim();
+
+  if (!question) {
+    showStatus("Please type or speak a question.");
+    return;
+  }
+
+  if (!reportId || !userId) {
+    showStatus(
+      "Report ID or patient ID is missing from the page URL."
+    );
+    return;
+  }
+
+  askButton.disabled = true;
+  listenButton.disabled = true;
+
+  currentAnswer = "";
+
+  clearPreviousAudio();
+
+  answerBox.textContent = "Thinking...";
+
+  showStatus("Analyzing your medical report...");
+
+  try {
+
+    const response = await fetch("/ask-report-ai", {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        userId: userId,
+        reportId: reportId,
+        question: question
+      })
+
+    });
+
+    const data = await readServerResponse(response);
+
+    currentAnswer = (data.answer || "").trim();
+
+    if (!currentAnswer) {
+      throw new Error("The AI returned an empty answer.");
+    }
+
+    answerBox.textContent = currentAnswer;
+
+    listenButton.disabled = false;
+
+    showStatus(
+      "Answer received successfully. Click Listen to hear it."
+    );
+
+  } catch (error) {
+
+    console.error("ASK AI ERROR:", error);
+
+    answerBox.textContent = "Sorry, something went wrong.";
+
+    showStatus(error.message);
+
+    listenButton.disabled = true;
+
+  } finally {
+
+    askButton.disabled = false;
+
+  }
+
+});
+
+
+// ==========================================
+// CLEANUP
+// ==========================================
+
+window.addEventListener("beforeunload", () => {
+
+  if (recordingStream) {
+    recordingStream.getTracks().forEach(track => track.stop());
+  }
+
+  if (currentAudioUrl) {
+    URL.revokeObjectURL(currentAudioUrl);
+  }
+
+});
+
+</script>
+
+</body>
+</html>

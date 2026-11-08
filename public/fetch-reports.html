@@ -1,0 +1,370 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch Medical Reports - Arogya Patra</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f3f6fa;
+            color: #263238;
+        }
+
+        .main-container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 25px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            color: #176b55;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .filter-section {
+            margin: 20px 0;
+        }
+
+        .filter-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+            background: white;
+        }
+
+        .report-card {
+            padding: 18px;
+            margin: 15px 0;
+            border: 1px solid #dce5e2;
+            border-left: 5px solid #178263;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .report-card h3 {
+            margin-top: 0;
+            color: #176b55;
+        }
+
+        .report-card p {
+            margin: 8px 0;
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .file-btn {
+            padding: 11px;
+            text-align: left;
+            border: 1px solid #178263;
+            border-radius: 6px;
+            background: #eef8f4;
+            color: #176b55;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .file-btn:hover {
+            background: #d8eee5;
+        }
+
+        .delete-btn {
+            margin-top: 15px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #d93025;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .delete-btn:hover {
+            background: #b3261e;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 25px;
+            color: #666;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .main-container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="main-container">
+
+    <h1>Arogya Patra</h1>
+    <p class="subtitle">Your Medical Reports</p>
+
+    <div class="filter-section">
+        <label for="testFilter">Filter Reports by Test</label>
+
+        <select id="testFilter" onchange="filterByTest()">
+            <option value="all">All Tests</option>
+        </select>
+    </div>
+
+    <h2>My Reports</h2>
+
+    <div id="reportsContainer">
+        <div class="loading">Loading reports...</div>
+    </div>
+
+</div>
+
+<script>
+const patientId = localStorage.getItem("patientId");
+
+let allReportRows = [];
+
+async function loadAllReports() {
+    const container = document.getElementById("reportsContainer");
+
+    if (!patientId) {
+        container.innerHTML = '<p>Please log in again.</p>';
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            "/fetch-reports/" + encodeURIComponent(patientId)
+        );
+
+        if (!response.ok) {
+            throw new Error("Could not load reports");
+        }
+
+        allReportRows = await response.json();
+
+        populateTestFilter();
+        showAllReports();
+
+    } catch (error) {
+        console.error(error);
+        container.innerHTML = '<p>Error loading reports.</p>';
+    }
+}
+
+function populateTestFilter() {
+    const testNames = [
+        ...new Set(allReportRows.map(row => row.test_name).filter(Boolean))
+    ];
+
+    const filter = document.getElementById("testFilter");
+
+    if (!filter) return;
+
+    filter.innerHTML = '<option value="all">All Tests</option>';
+
+    testNames.forEach(test => {
+        const option = document.createElement("option");
+        option.value = test;
+        option.textContent = test;
+        filter.appendChild(option);
+    });
+}
+
+function showAllReports() {
+    displayReports(allReportRows);
+}
+
+function filterByTest() {
+    const filter = document.getElementById("testFilter");
+    if (!filter) return;
+
+    const selectedTest = filter.value;
+
+    if (selectedTest === "all") {
+        showAllReports();
+    } else {
+        displayReports(
+            allReportRows.filter(row => row.test_name === selectedTest)
+        );
+    }
+}
+
+function openFile(filePath, fileName, reportId, userId) {
+    const viewerUrl =
+        "/report-viewer.html?file=" + filePath +
+        "&name=" + fileName +
+        "&reportId=" + reportId +
+        "&userId=" + userId;
+
+    window.open(viewerUrl, "_blank");
+}
+
+// DELETE REPORT
+async function deleteReport(reportId) {
+
+    const confirmDelete = confirm(
+        "Are you sure you want to delete this report and all its attached files? This action cannot be undone."
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+        const response = await fetch(
+            "/delete-report/" +
+            encodeURIComponent(patientId) + "/" +
+            encodeURIComponent(reportId),
+            {
+                method: "DELETE"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Could not delete report.");
+        }
+
+        // Remove the deleted report from the displayed data
+        allReportRows = allReportRows.filter(
+            row => Number(row.report_id) !== Number(reportId)
+        );
+
+        populateTestFilter();
+
+        // Preserve the currently selected test filter
+        filterByTest();
+
+        alert("Report deleted successfully.");
+
+    } catch (error) {
+        console.error(error);
+        alert(error.message || "Error deleting report.");
+    }
+}
+
+function displayReports(rows) {
+    const container = document.getElementById("reportsContainer");
+
+    if (!rows || rows.length === 0) {
+        container.innerHTML = '<p>No reports found.</p>';
+        return;
+    }
+
+    const reportGroups = {};
+
+    rows.forEach(row => {
+        if (!reportGroups[row.report_id]) {
+            reportGroups[row.report_id] = {
+                report_id: row.report_id,
+                user_id: row.user_id,
+                hospital: row.hospital,
+                doctor: row.doctor,
+                test_name: row.test_name,
+                visit_date: row.visit_date,
+                files: []
+            };
+        }
+
+        if (row.file_id) {
+            reportGroups[row.report_id].files.push({
+                id: row.file_id,
+                name: row.file_name,
+                path: row.file_path
+            });
+        }
+    });
+
+    let html = "";
+
+    Object.values(reportGroups).forEach(report => {
+        let filesHTML = "";
+
+        report.files.forEach(file => {
+            filesHTML += `
+                <button class="file-btn"
+                    onclick="openFile(
+                        '${encodeURIComponent(file.path)}',
+                        '${encodeURIComponent(file.name)}',
+                        '${report.report_id}',
+                        '${encodeURIComponent(report.user_id)}'
+                    )">
+                    ${escapeHTML(file.name)}
+                </button>
+            `;
+        });
+
+        html += `
+            <div class="report-card">
+                <h3>${escapeHTML(report.hospital)}</h3>
+
+                <p><strong>Test:</strong> ${escapeHTML(report.test_name)}</p>
+
+                <p><strong>Doctor:</strong> ${escapeHTML(report.doctor)}</p>
+
+                <p><strong>Date:</strong> ${escapeHTML(report.visit_date)}</p>
+
+                <div class="file-list">${filesHTML}</div>
+
+                <button class="delete-btn"
+                    onclick="deleteReport('${report.report_id}')">
+                    Delete Report
+                </button>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+
+loadAllReports();
+</script>
+
+</body>
+</html>

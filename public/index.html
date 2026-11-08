@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Arogya Patra</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #f3f8f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 900px;
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            text-align: center;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .logo {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 42px;
+            color: #176b5b;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 40px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            width: 220px;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .create {
+            background: #176b5b;
+            color: white;
+        }
+
+        .login {
+            background: white;
+            color: #176b5b;
+            border: 2px solid #176b5b;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .forgot {
+            margin-top: 25px;
+            color: #176b5b;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="logo">🏥</div>
+
+        <h1>Arogya Patra</h1>
+
+        <p class="subtitle">
+            Your Digital Medical Reports
+        </p>
+
+        <div class="buttons">
+
+            <button class="create" onclick="window.location.href='create-account.html'">
+                Create Account
+            </button>
+
+            <button class="login" onclick="window.location.href='login.html'">
+                Login
+            </button>
+
+        </div>
+
+       <p class="forgot" onclick="window.location.href='login.html'">
+    Forgot your Arogya Patra ID?
+</p>
+
+        <div class="footer">
+            Secure • Simple • Digital Healthcare Records
+        </div>
+
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,279 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Arogya Patra</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f3f8f6;
+            color: #333;
+        }
+
+        header {
+            background: #176b5b;
+            color: white;
+            padding: 20px 30px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 650px;
+            margin: 40px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            color: #176b5b;
+        }
+
+        .detail {
+            background: #f3f8f6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .detail strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .detail span {
+            color: #176b5b;
+            font-weight: bold;
+        }
+
+        .edit-fields {
+            display: none;
+            margin-top: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin: 15px 0 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: #176b5b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 15px 8px 0 0;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>🏥 Arogya Patra</h1>
+    </header>
+
+    <div class="container">
+
+        <h2>👤 My Profile</h2>
+        <p>Your personal account information</p>
+
+        <div class="detail">
+            <strong>Patient Name</strong>
+            <span id="patientName">Loading...</span>
+        </div>
+
+        <div class="detail">
+            <strong>Arogya Patra ID</strong>
+            <span id="patientId">Loading...</span>
+        </div>
+
+        <div class="detail">
+            <strong>Registered Mobile Number</strong>
+            <span id="patientMobile">Loading...</span>
+        </div>
+
+        <button id="editButton" onclick="showEditForm()">
+            Edit Profile
+        </button>
+
+        <div class="edit-fields" id="editFields">
+
+            <h3>Edit Your Details</h3>
+
+            <label for="editName">Patient Name</label>
+            <input type="text" id="editName">
+
+            <label for="editMobile">Mobile Number</label>
+            <input
+                type="tel"
+                id="editMobile"
+                maxlength="10"
+                inputmode="numeric"
+            >
+
+            <button onclick="saveProfile()">Save Changes</button>
+
+            <button onclick="cancelEdit()" style="background:#777;">
+                Cancel
+            </button>
+
+        </div>
+
+        <p id="message"></p>
+
+        <button onclick="window.location.href='dashboard.html'">
+            Back to Dashboard
+        </button>
+
+    </div>
+
+    <script>
+
+        async function loadProfile() {
+
+            const userId = localStorage.getItem("patientId");
+
+            if (!userId) {
+                document.getElementById("message").innerText =
+                    "Please log in to view your profile.";
+                document.getElementById("editButton").disabled = true;
+                return;
+            }
+
+            try {
+
+                const response = await fetch(
+                    "/profile/" + encodeURIComponent(userId)
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message);
+                }
+
+                document.getElementById("patientName").innerText = data.name;
+                document.getElementById("patientId").innerText = data.user_id;
+                document.getElementById("patientMobile").innerText = data.mobile;
+
+                document.getElementById("editName").value = data.name;
+                document.getElementById("editMobile").value = data.mobile;
+
+                localStorage.setItem("patientName", data.name);
+                localStorage.setItem("patientId", data.user_id);
+
+            } catch (error) {
+
+                document.getElementById("message").innerText =
+                    error.message || "Could not load profile.";
+
+            }
+        }
+
+        function showEditForm() {
+
+            document.getElementById("editFields").style.display = "block";
+            document.getElementById("editButton").style.display = "none";
+            document.getElementById("message").innerText = "";
+
+        }
+
+        function cancelEdit() {
+
+            document.getElementById("editFields").style.display = "none";
+            document.getElementById("editButton").style.display = "inline-block";
+            loadProfile();
+
+        }
+
+        async function saveProfile() {
+
+            const userId = localStorage.getItem("patientId");
+            const name = document.getElementById("editName").value.trim();
+            const mobile = document.getElementById("editMobile").value.trim();
+
+            if (!name) {
+                alert("Please enter your name.");
+                return;
+            }
+
+            if (!/^\d{10}$/.test(mobile)) {
+                alert("Please enter a valid 10-digit mobile number.");
+                return;
+            }
+
+            try {
+
+                const response = await fetch(
+                    "/profile/" + encodeURIComponent(userId),
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            mobile: mobile
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message);
+                }
+
+                document.getElementById("message").innerText =
+                    "Profile updated successfully!";
+
+                await loadProfile();
+
+                document.getElementById("editFields").style.display = "none";
+                document.getElementById("editButton").style.display = "inline-block";
+
+            } catch (error) {
+
+                document.getElementById("message").innerText =
+                    error.message || "Could not update profile.";
+
+            }
+        }
+
+        loadProfile();
+
+    </script>
+
+</body>
+</html>

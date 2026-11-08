@@ -1,0 +1,30 @@
+{
+  "name": "arogya-patra",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/genai": "^2.32.0",
+    "axios": "^1.21.0",
+    "dotenv": "^18.0.9",
+    "express": "^5.2.1",
+    "form-data": "^4.0.6",
+    "multer": "^2.4.0",
+    "pdf-parse": "^1.1.1",
+    "sqlite3": "^6.0.1",
+    "tesseract.js": "^7.0.0"
+  },
+  "allowScripts": {
+    "sqlite3@6.0.1": true,
+    "tesseract.js@7.0.0": true,
+    "@google/genai@2.32.0": true,
+    "protobufjs@7.6.6": true
+  }
+}

@@ -1,0 +1,24 @@
+
+# Environment variables and API keys
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Database files
+arogya-patra.db
+arogya-patra.db-*
+*.sqlite
+*.sqlite3
+
+# Uploaded medical reports
+uploads/
+
+# Logs
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
