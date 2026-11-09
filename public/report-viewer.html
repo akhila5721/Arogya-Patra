@@ -95,6 +95,46 @@
       .report, .assistant { padding: 14px; }
       iframe { height: 400px; }
     }
+
+    body.embedded { padding: 12px; }
+
+    body.embedded .container {
+      width: 100%;
+      max-width: none;
+      height: calc(100vh - 24px);
+      margin: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
+      gap: 12px;
+    }
+
+    body.embedded .report,
+    body.embedded .assistant {
+      min-width: 0;
+      max-height: 100%;
+      overflow-y: auto;
+      margin: 0;
+      padding: 16px;
+    }
+
+    body.embedded iframe { height: calc(100vh - 125px); }
+    body.embedded textarea { min-height: 84px; }
+
+    @media (max-width: 760px) {
+      body.embedded .container {
+        height: auto;
+        display: block;
+      }
+
+      body.embedded .report,
+      body.embedded .assistant {
+        max-height: none;
+        overflow: visible;
+        margin-bottom: 12px;
+      }
+
+      body.embedded iframe { height: 40vh; }
+    }
   </style>
 </head>
 
@@ -151,6 +191,10 @@
 // ==========================================
 
 const params = new URLSearchParams(window.location.search);
+
+if (params.get("embedded") === "1") {
+  document.body.classList.add("embedded");
+}
 
 const file = params.get("file");
 const name = params.get("name") || "Medical Report";

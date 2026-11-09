@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Arogya Patra</title>
 
     <style>
@@ -12,123 +11,767 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: "Segoe UI", Arial, sans-serif;
         }
 
         body {
             min-height: 100vh;
-            background: #f3f8f6;
+            background: #edf0ef;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
+            padding: 32px 18px 50px;
+            color: #0b5c4e;
         }
 
-        .container {
-            width: 90%;
-            max-width: 900px;
-            background: white;
-            border-radius: 20px;
-            padding: 50px;
+        .page {
+            width: min(980px, 100%);
             text-align: center;
-            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.12);
         }
 
-        .logo {
-            font-size: 60px;
-            margin-bottom: 10px;
+        .brand-mark {
+            width: 120px;
+            height: 104px;
+            background: linear-gradient(180deg, #c3a7eb, #a883d6);
+            border-radius: 18px;
+            margin: 0 auto 24px;
+            position: relative;
+            box-shadow: 0 12px 24px rgba(123, 94, 177, 0.18);
+        }
+
+        .brand-mark::before,
+        .brand-mark::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 62px;
+            height: 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .brand-mark::before {
+            top: 30px;
+            box-shadow: 0 18px 0 rgba(255, 255, 255, 0.9), 0 36px 0 rgba(255, 255, 255, 0.9);
+        }
+
+        .brand-mark::after {
+            display: none;
         }
 
         h1 {
-            font-size: 42px;
-            color: #176b5b;
-            margin-bottom: 10px;
+            font-size: clamp(4.2rem, 7vw, 9rem);
+            line-height: 0.95;
+            letter-spacing: -0.08em;
+            color: #0a6d5d;
+            font-weight: 700;
         }
 
         .subtitle {
-            font-size: 20px;
-            color: #555;
-            margin-bottom: 40px;
+            font-size: clamp(1.7rem, 2.4vw, 3rem);
+            font-weight: 400;
+            color: #2f2f2f;
+            margin-top: 18px;
+            margin-bottom: 30px;
         }
 
-        .buttons {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            max-width: 760px;
+            margin: 0 auto 30px;
         }
 
-        button {
-            width: 220px;
-            padding: 16px;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
+        .action-btn {
+            border-radius: 18px;
+            padding: 26px 12px;
+            font-size: clamp(1.7rem, 2.3vw, 3rem);
+            font-weight: 700;
             cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid rgba(10, 109, 93, 0.7);
+            font-family: inherit;
         }
 
-        .create {
-            background: #176b5b;
+        .action-btn.primary {
+            background: linear-gradient(180deg, #0a6d5d, #0f7d6d);
             color: white;
+            box-shadow: 0 12px 22px rgba(12, 110, 94, 0.18);
         }
 
-        .login {
-            background: white;
-            color: #176b5b;
-            border: 2px solid #176b5b;
+        .action-btn.secondary {
+            background: transparent;
+            color: #0a6d5d;
         }
 
-        button:hover {
-            opacity: 0.85;
+        .auth-card {
+            max-width: 720px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(10, 109, 93, 0.2);
+            border-radius: 22px;
+            padding: 28px 28px 18px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+        }
+
+        .form-panel {
+            display: none;
+        }
+
+        .form-panel.active {
+            display: block;
+        }
+
+        .panel-title {
+            font-size: clamp(2.1rem, 3vw, 3.2rem);
+            font-weight: 700;
+            color: #0b5c4e;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .field {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1b2d2b;
+        }
+
+        input {
+            width: 100%;
+            padding: 16px 18px;
+            border-radius: 12px;
+            border: 2px solid rgba(10, 109, 93, 0.35);
+            background: rgba(255,255,255,0.35);
+            font-size: 1.3rem;
+            color: #0d1d1a;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #0a6d5d;
+            box-shadow: 0 0 0 4px rgba(10, 109, 93, 0.08);
+        }
+
+        .primary-submit,
+        .secondary-submit {
+            width: 100%;
+            border: none;
+            border-radius: 14px;
+            padding: 18px 20px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .primary-submit {
+            background: linear-gradient(180deg, #0a6d5d, #0d7d6c);
+            color: white;
+            box-shadow: 0 12px 20px rgba(12, 110, 94, 0.18);
+        }
+
+        .secondary-submit {
+            background: linear-gradient(180deg, #0a6d5d, #0d7d6c);
+            color: white;
+            margin-top: 16px;
         }
 
         .forgot {
-            margin-top: 25px;
-            color: #176b5b;
+            font-size: 1.5rem;
+            color: #0a6d5d;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 16px;
+            text-align: center;
+            margin-top: 22px;
+            margin-bottom: 8px;
         }
 
-        .footer {
-            margin-top: 40px;
-            color: #888;
-            font-size: 14px;
+        .message {
+            min-height: 24px;
+            margin-top: 14px;
+            text-align: center;
+            color: #0a6d5d;
+            font-weight: 600;
+        }
+
+        .id-box {
+            display: none;
+            margin-top: 20px;
+            padding: 18px 16px;
+            border-radius: 12px;
+            background: rgba(10, 109, 93, 0.08);
+            border: 1px solid rgba(10, 109, 93, 0.18);
+            color: #0d3f35;
+        }
+
+        .id-box.show {
+            display: block;
+        }
+
+        .footer-note {
+            margin-top: 26px;
+            font-size: 1.6rem;
+            font-weight: 500;
+            color: #2f2f2f;
+            letter-spacing: 0.02em;
+        }
+
+        .otp-wrap {
+            display: none;
+            margin-top: 12px;
+        }
+
+        .otp-wrap.show {
+            display: block;
+        }
+
+        body {
+            align-items: center;
+            padding: 28px;
+            background: #e7f0ed;
+            color: #173c36;
+        }
+
+        .page {
+            width: min(1120px, 100%);
+            text-align: left;
+        }
+
+        .auth-shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            min-height: 610px;
+            overflow: hidden;
+            background: #fff;
+            border-radius: 22px;
+            box-shadow: 0 28px 70px rgba(28, 79, 67, 0.18);
+        }
+
+        .auth-side {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: clamp(32px, 6vw, 82px);
+        }
+
+        .brand-mini {
+            display: flex;
+            align-items: center;
+            color: #0a6d5d;
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 48px;
+        }
+
+        .brand-mini span {
+            display: inline-grid;
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            margin-right: 10px;
+            place-items: center;
+            border-radius: 9px;
+            background: #0a6d5d;
+            color: #fff;
+            font-size: 1.6rem;
+        }
+
+        .auth-card {
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .panel-title {
+            margin-bottom: 8px;
+            text-align: left;
+            font-size: 2rem;
+            color: #18332e;
+        }
+
+        .auth-subtitle {
+            margin-bottom: 28px;
+            color: #687974;
+            font-size: 0.98rem;
+        }
+
+        .field { margin-bottom: 17px; }
+
+        label {
+            margin-bottom: 7px;
+            font-size: 0.9rem;
+            color: #354a45;
+        }
+
+        input {
+            padding: 14px 15px;
+            border: 1px solid #dce7e3;
+            border-radius: 9px;
+            background: #f5f8f7;
+            font-size: 1rem;
+        }
+
+        .primary-submit,
+        .secondary-submit {
+            padding: 14px 18px;
+            border-radius: 9px;
+            font-size: 1rem;
+        }
+
+        .auth-links {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 21px;
+        }
+
+        .auth-link,
+        .legacy-link {
+            padding: 0;
+            border: 0;
+            background: none;
+            color: #0a6d5d;
+            font: inherit;
+            font-size: 0.92rem;
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+        .legacy-link {
+            margin-top: 22px;
+            color: #65756f;
+            font-size: 0.82rem;
+            font-weight: 500;
+        }
+
+        .visual-panel {
+            position: relative;
+            min-height: 610px;
+            overflow: hidden;
+            display: grid;
+            place-items: center;
+            background: #0b7562;
+        }
+
+        .visual-panel::before,
+        .visual-panel::after {
+            content: "";
+            position: absolute;
+            width: 460px;
+            height: 460px;
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 50%;
+        }
+
+        .visual-panel::before { top: -245px; right: -120px; }
+        .visual-panel::after { bottom: -315px; left: -110px; width: 560px; height: 560px; }
+
+        .doctor-frame {
+            position: relative;
+            z-index: 1;
+            width: min(72%, 370px);
+            height: 390px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.45);
+            border-radius: 28px;
+            background: rgba(255,255,255,0.14);
+            box-shadow: 0 24px 60px rgba(0, 43, 36, 0.24);
+        }
+
+        .doctor-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 30%;
+        }
+
+        .visual-caption {
+            position: absolute;
+            z-index: 2;
+            right: 12%;
+            bottom: 10%;
+            max-width: 250px;
+            color: #fff;
+            font-size: 1.3rem;
+            font-weight: 650;
+            line-height: 1.35;
+            text-align: right;
+        }
+
+        .footer-note { display: none; }
+
+        .message { color: #0a6d5d; }
+
+        .form-message {
+            min-height: 22px;
+            margin-top: 12px;
+            color: #a53131;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .form-message.success { color: #0a6d5d; }
+
+        @media (max-width: 760px) {
+            body { padding: 14px; }
+            .auth-shell { grid-template-columns: 1fr; min-height: 0; }
+            .auth-side { padding: 28px 24px 34px; }
+            .brand-mini { margin-bottom: 34px; }
+            .visual-panel { min-height: 230px; }
+            .doctor-frame { width: 145px; height: 180px; border-radius: 18px; }
+            .visual-caption { right: 8%; bottom: 12%; max-width: 165px; font-size: 1rem; }
+        }
+
+        @media (max-width: 420px) {
+            .auth-links { align-items: flex-start; flex-direction: column; }
+            .visual-caption { display: none; }
+        }
+
+        @media (max-width: 640px) {
+            .actions {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-card {
+                padding: 20px 18px 16px;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <div class="container">
+    <main class="page">
+        <div class="auth-shell">
+            <section class="auth-side">
+                <div class="brand-mini"><span>+</span>Arogya Patra</div>
 
-        <div class="logo">🏥</div>
+                <div class="auth-card">
+                    <div class="form-panel active" id="loginPanel">
+                        <h1 class="panel-title">Login</h1>
+                        <p class="auth-subtitle">Access your digital medical reports securely.</p>
 
-        <h1>Arogya Patra</h1>
+                        <div class="field">
+                            <label for="userId">Username</label>
+                            <input type="text" id="userId" placeholder="Your Arogya Patra ID" autocomplete="username">
+                        </div>
 
-        <p class="subtitle">
-            Your Digital Medical Reports
-        </p>
+                        <div class="field">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+                        </div>
 
-        <div class="buttons">
+                        <button class="primary-submit" type="button" onclick="login()">Login</button>
 
-            <button class="create" onclick="window.location.href='create-account.html'">
-                Create Account
-            </button>
+                        <div class="auth-links">
+                            <button class="auth-link" type="button" onclick="setActiveForm('signup')">Create account</button>
+                            <button class="auth-link" type="button" onclick="setActiveForm('forgot')">Forgot ID?</button>
+                        </div>
+                        <p class="form-message" id="loginMessage" aria-live="polite"></p>
+                        <button class="legacy-link" type="button" onclick="setActiveForm('setup')">Set a password for an existing account</button>
+                    </div>
 
-            <button class="login" onclick="window.location.href='login.html'">
-                Login
-            </button>
+                    <div class="form-panel" id="signupPanel">
+                        <h1 class="panel-title">Create account</h1>
+                        <p class="auth-subtitle">Start your Arogya Patra account.</p>
 
+                        <div class="field">
+                            <label for="name">Full name</label>
+                            <input type="text" id="name" placeholder="Enter your full name" autocomplete="name">
+                        </div>
+
+                        <div class="field">
+                            <label for="mobile">Mobile number</label>
+                            <input type="tel" id="mobile" placeholder="10-digit mobile number" autocomplete="tel">
+                        </div>
+
+                        <div class="field">
+                            <label for="newPassword">Password</label>
+                            <input type="password" id="newPassword" placeholder="At least 8 characters" autocomplete="new-password">
+                        </div>
+
+                        <button class="primary-submit" type="button" onclick="sendOTP()">Send OTP</button>
+
+                        <div class="otp-wrap" id="otpWrap">
+                            <div class="field">
+                                <label for="otp">Enter OTP</label>
+                                <input type="text" id="otp" placeholder="6-digit OTP" inputmode="numeric" autocomplete="one-time-code">
+                            </div>
+                            <button class="secondary-submit" type="button" onclick="verifyOTP()">Verify and create account</button>
+                        </div>
+
+                        <p class="form-message" id="message" aria-live="polite"></p>
+                        <div class="id-box" id="idBox">
+                            <strong>Account created</strong><br>
+                            Your Arogya Patra ID is: <span id="userIdDisplay"></span>
+                        </div>
+                        <div class="auth-links">
+                            <button class="auth-link" type="button" onclick="setActiveForm('login')">Back to login</button>
+                        </div>
+                    </div>
+
+                    <div class="form-panel" id="setupPanel">
+                        <h1 class="panel-title">Set password</h1>
+                        <p class="auth-subtitle">For accounts created before password login.</p>
+
+                        <div class="field">
+                            <label for="setupUserId">Arogya Patra ID</label>
+                            <input type="text" id="setupUserId" placeholder="Enter your Arogya Patra ID" autocomplete="username">
+                        </div>
+                        <div class="field">
+                            <label for="setupMobile">Registered mobile number</label>
+                            <input type="tel" id="setupMobile" placeholder="10-digit mobile number" autocomplete="tel">
+                        </div>
+                        <div class="field">
+                            <label for="setupOtp">Demo OTP</label>
+                            <input type="text" id="setupOtp" placeholder="Use 123456" inputmode="numeric">
+                        </div>
+                        <div class="field">
+                            <label for="setupPassword">New password</label>
+                            <input type="password" id="setupPassword" placeholder="At least 8 characters" autocomplete="new-password">
+                        </div>
+                        <button class="primary-submit" type="button" onclick="setPassword()">Save password</button>
+                        <p class="message" id="setupMessage" aria-live="polite"></p>
+                        <div class="auth-links">
+                            <button class="auth-link" type="button" onclick="setActiveForm('login')">Back to login</button>
+                        </div>
+                    </div>
+
+                    <div class="form-panel" id="forgotPanel">
+                        <h1 class="panel-title">Forgot ID?</h1>
+                        <p class="auth-subtitle">Enter the mobile number registered to your account.</p>
+                        <div class="field">
+                            <label for="forgotMobile">Mobile number</label>
+                            <input type="tel" id="forgotMobile" placeholder="10-digit mobile number" autocomplete="tel">
+                        </div>
+                        <button class="primary-submit" type="button" onclick="forgotId()">Find my ID</button>
+                        <p class="form-message" id="forgotMessage" aria-live="polite"></p>
+                        <div class="auth-links">
+                            <button class="auth-link" type="button" onclick="setActiveForm('login')">Back to login</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="visual-panel" aria-label="Healthcare professional">
+                <div class="doctor-frame">
+                    <img src="/images/dr.jpg" alt="Illustration of a doctor">
+                </div>
+                <p class="visual-caption">Your health records, together in one place.</p>
+            </aside>
         </div>
+    </main>
 
-       <p class="forgot" onclick="window.location.href='login.html'">
-    Forgot your Arogya Patra ID?
-</p>
+    <script>
+        function setActiveForm(formName) {
+            const loginPanel = document.getElementById('loginPanel');
+            const signupPanel = document.getElementById('signupPanel');
+            const setupPanel = document.getElementById('setupPanel');
+            const forgotPanel = document.getElementById('forgotPanel');
+            loginPanel.classList.toggle('active', formName === 'login');
+            signupPanel.classList.toggle('active', formName === 'signup');
+            setupPanel.classList.toggle('active', formName === 'setup');
+            forgotPanel.classList.toggle('active', formName === 'forgot');
+        }
 
-        <div class="footer">
-            Secure • Simple • Digital Healthcare Records
-        </div>
+        function showMessage(elementId, text, type = 'error') {
+            const message = document.getElementById(elementId);
+            message.textContent = text;
+            message.classList.toggle('success', type === 'success');
+        }
 
-    </div>
+        async function login() {
+            const userId = document.getElementById('userId').value.trim();
+            const password = document.getElementById('password').value;
+            showMessage('loginMessage', '');
+
+            if (!userId || !password) {
+                showMessage('loginMessage', 'Enter your username and password.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId, password: password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showMessage('loginMessage', data.message || 'Login failed. Check your details and try again.');
+                    return;
+                }
+
+                localStorage.setItem('patientName', data.user.name);
+                localStorage.setItem('patientId', data.user.user_id);
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                showMessage('loginMessage', 'Could not connect to the server. Please try again.');
+            }
+        }
+
+        function sendOTP() {
+            const name = document.getElementById('name').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+            const password = document.getElementById('newPassword').value;
+            showMessage('message', '');
+
+            if (name === '') {
+                showMessage('message', 'Please enter your full name.');
+                return;
+            }
+
+            if (!/^\d{10}$/.test(mobile)) {
+                showMessage('message', 'Please enter a valid 10-digit mobile number.');
+                return;
+            }
+
+            if (password.length < 8) {
+                showMessage('message', 'Choose a password with at least 8 characters.');
+                return;
+            }
+
+            document.getElementById('otpWrap').classList.add('show');
+            showMessage('message', 'Demo OTP sent. Use 123456 to continue.', 'success');
+        }
+
+        async function verifyOTP() {
+            const name = document.getElementById('name').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+            const otp = document.getElementById('otp').value.trim();
+            showMessage('message', '');
+
+            if (otp !== '123456') {
+                showMessage('message', 'Invalid OTP. Please enter 123456.');
+                return;
+            }
+
+            const randomNumber = Math.floor(100000 + Math.random() * 900000);
+            const generatedID = 'AP' + randomNumber;
+
+            try {
+                const response = await fetch('/create-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        mobile: mobile,
+                        userId: generatedID,
+                        password: document.getElementById('newPassword').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showMessage('message', data.message || 'Account could not be created.');
+                    return;
+                }
+
+                document.getElementById('userIdDisplay').innerText = data.userId;
+                document.getElementById('idBox').classList.add('show');
+                showMessage('message', 'Account created successfully.', 'success');
+            } catch (error) {
+                showMessage('message', 'Could not connect to the server. Please try again.');
+            }
+        }
+
+        async function forgotId() {
+            const mobile = document.getElementById('forgotMobile').value.trim();
+            showMessage('forgotMessage', '');
+
+            if (!/^\d{10}$/.test(mobile)) {
+                showMessage('forgotMessage', 'Please enter a valid 10-digit mobile number.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/forgot-id', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mobile: mobile })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showMessage('forgotMessage', data.message || 'Unable to find your account.');
+                    return;
+                }
+
+                showMessage('forgotMessage', 'Your Arogya Patra ID is: ' + data.userId, 'success');
+            } catch (error) {
+                showMessage('forgotMessage', 'Could not connect to the server. Please try again.');
+            }
+        }
+
+        async function setPassword() {
+            const userId = document.getElementById('setupUserId').value.trim();
+            const mobile = document.getElementById('setupMobile').value.trim();
+            const otp = document.getElementById('setupOtp').value.trim();
+            const password = document.getElementById('setupPassword').value;
+            const message = document.getElementById('setupMessage');
+
+            message.textContent = '';
+
+            if (!userId) {
+                message.textContent = 'Enter your Arogya Patra ID.';
+                return;
+            }
+
+            if (!/^\d{10}$/.test(mobile)) {
+                message.textContent = 'Enter the registered 10-digit mobile number.';
+                return;
+            }
+
+            if (otp !== '123456') {
+                message.textContent = 'Enter the demo OTP 123456.';
+                return;
+            }
+
+            if (password.length < 8 || password.length > 128) {
+                message.textContent = 'Password must be between 8 and 128 characters.';
+                return;
+            }
+
+            try {
+                const response = await fetch('/set-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId, mobile: mobile, otp: otp, password: password })
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    message.textContent = data.message || 'Password could not be saved.';
+                    return;
+                }
+
+                document.getElementById('userId').value = userId;
+                document.getElementById('password').value = '';
+                setActiveForm('login');
+                showMessage('loginMessage', 'Password saved. You can now log in.', 'success');
+            } catch (error) {
+                message.textContent = 'Could not connect to the server.';
+            }
+        }
+    </script>
 
 </body>
 

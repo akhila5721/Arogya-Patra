@@ -11,6 +11,7 @@ const pdf = require("pdf-parse");
 const Tesseract = require("tesseract.js");
 const axios = require("axios");
 const FormData = require("form-data");
+const crypto = require("crypto");
 
 const app = express();
 const PORT = 3000;
@@ -51,9 +52,41 @@ db.run(`
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         mobile TEXT NOT NULL,
-        user_id TEXT UNIQUE NOT NULL
+        user_id TEXT UNIQUE NOT NULL,
+        password_hash TEXT
     )
 `);
+
+db.run("ALTER TABLE users ADD COLUMN password_hash TEXT", err => {
+    if (err && !err.message.includes("duplicate column name")) {
+        console.error("Could not add user password support:", err.message);
+    }
+});
+
+function hashPassword(password) {
+    const salt = crypto.randomBytes(16).toString("hex");
+
+    return new Promise((resolve, reject) => {
+        crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+            if (err) return reject(err);
+            resolve(`${salt}:${derivedKey.toString("hex")}`);
+        });
+    });
+}
+
+function verifyPassword(password, storedHash) {
+    if (!storedHash || !storedHash.includes(":")) return Promise.resolve(false);
+
+    const [salt, expectedHex] = storedHash.split(":");
+    const expected = Buffer.from(expectedHex, "hex");
+
+    return new Promise((resolve, reject) => {
+        crypto.scrypt(password, salt, expected.length, (err, derivedKey) => {
+            if (err) return reject(err);
+            resolve(crypto.timingSafeEqual(derivedKey, expected));
+        });
+    });
+}
 
 db.run(`
     CREATE TABLE IF NOT EXISTS reports (
@@ -163,33 +196,44 @@ const voiceUpload = multer({
 // ===============================
 
 app.post("/create-account", (req, res) => {
-    const { name, mobile, userId } = req.body;
+    const { name, mobile, userId, password } = req.body;
 
-    if (!name || !mobile || !userId) {
+    if (!name || !mobile || !userId || !password) {
         return res.status(400).json({
             message: "All fields are required."
         });
     }
 
-    db.run(
-        `INSERT INTO users (name, mobile, user_id)
-         VALUES (?, ?, ?)`,
-        [name, mobile, userId],
-        function(err) {
-            if (err) {
-                console.error("Create account error:", err);
+    if (password.length < 8 || password.length > 128) {
+        return res.status(400).json({
+            message: "Password must be between 8 and 128 characters."
+        });
+    }
 
-                return res.status(400).json({
-                    message: "Account could not be created."
+    hashPassword(password).then(passwordHash => {
+        db.run(
+            `INSERT INTO users (name, mobile, user_id, password_hash)
+             VALUES (?, ?, ?, ?)`,
+            [name, mobile, userId, passwordHash],
+            function(err) {
+                if (err) {
+                    console.error("Create account error:", err);
+
+                    return res.status(400).json({
+                        message: "Account could not be created."
+                    });
+                }
+
+                res.json({
+                    message: "Account created successfully.",
+                    userId: userId
                 });
             }
-
-            res.json({
-                message: "Account created successfully.",
-                userId: userId
-            });
-        }
-    );
+        );
+    }).catch(err => {
+        console.error("Password hashing error:", err);
+        res.status(500).json({ message: "Account could not be created." });
+    });
 });
 
 // ===============================
@@ -197,11 +241,11 @@ app.post("/create-account", (req, res) => {
 // ===============================
 
 app.post("/login", (req, res) => {
-    const { userId } = req.body;
+    const { userId, password } = req.body;
 
-    if (!userId) {
+    if (!userId || !password) {
         return res.status(400).json({
-            message: "Arogya Patra ID is required."
+            message: "Username and password are required."
         });
     }
 
@@ -221,12 +265,99 @@ app.post("/login", (req, res) => {
                 });
             }
 
-            res.json({
-                message: "Login successful.",
-                user: row
+            if (!row.password_hash) {
+                return res.status(409).json({
+                    message: "Set a password for this existing account before logging in."
+                });
+            }
+
+            verifyPassword(password, row.password_hash).then(isValid => {
+                if (!isValid) {
+                    return res.status(401).json({ message: "Invalid username or password." });
+                }
+
+                delete row.password_hash;
+                res.json({ message: "Login successful.", user: row });
+            }).catch(error => {
+                console.error("Password verification error:", error);
+                res.status(500).json({ message: "Login could not be completed." });
             });
         }
     );
+});
+
+app.post("/set-password", (req, res) => {
+    const { userId, mobile, otp, password } = req.body;
+
+    if (!userId || !mobile || !otp || !password) {
+        return res.status(400).json({ message: "All fields are required." });
+    }
+
+    if (otp !== "123456") {
+        return res.status(400).json({ message: "Invalid demo OTP." });
+    }
+
+    if (password.length < 8 || password.length > 128) {
+        return res.status(400).json({ message: "Password must be between 8 and 128 characters." });
+    }
+
+    db.get(
+        "SELECT mobile, password_hash FROM users WHERE user_id = ?",
+        [userId],
+        (err, row) => {
+            if (err) {
+                return res.status(500).json({ message: "Could not check the account." });
+            }
+
+            if (!row) {
+                return res.status(404).json({ message: "Arogya Patra ID was not found." });
+            }
+
+            if (row.mobile !== mobile) {
+                return res.status(400).json({ message: "Registered mobile number does not match." });
+            }
+
+            if (row.password_hash) {
+                return res.status(409).json({ message: "A password is already set for this account. Log in with that password." });
+            }
+
+            hashPassword(password).then(passwordHash => {
+                db.run(
+                    `UPDATE users SET password_hash = ?
+                     WHERE user_id = ? AND mobile = ? AND password_hash IS NULL`,
+                    [passwordHash, userId, mobile],
+                    function(updateError) {
+                        if (updateError) {
+                            return res.status(500).json({ message: "Password could not be saved." });
+                        }
+
+                        if (this.changes === 0) {
+                            return res.status(409).json({ message: "A password was set for this account already." });
+                        }
+
+                        res.json({ message: "Password saved successfully." });
+                    }
+                );
+            }).catch(hashError => {
+                console.error("Password hashing error:", hashError);
+                res.status(500).json({ message: "Password could not be saved." });
+            });
+        }
+    );
+});
+
+app.post("/forgot-id", (req, res) => {
+    const { mobile } = req.body;
+
+    if (!mobile) {
+        return res.status(400).json({ message: "Registered mobile number is required." });
+    }
+
+    db.get("SELECT user_id FROM users WHERE mobile = ?", [mobile], (err, row) => {
+        if (err) return res.status(500).json({ message: "Could not look up the account." });
+        if (!row) return res.status(404).json({ message: "No account was found for that mobile number." });
+        res.json({ userId: row.user_id });
+    });
 });
 
 // ===============================
